@@ -4,6 +4,7 @@
 #include "algorithms/BaseAlgorithm.h"
 #include "algorithms/AlgorithmFactory.h"
 
+#include <QFile>
 #include <QDial>
 #include <QComboBox>
 #include <QPushButton>
@@ -11,6 +12,25 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QStringList>
+
+QVector<double> MainWindow::readOrigin(const QString &path)
+{
+    QFile file{path};
+    QVector<double> dataOrigin {};
+    if(file.open(QIODevice::ReadOnly)){
+        QTextStream stream {&file};
+        while(!stream.atEnd()){
+            const QString line {stream.readLine()};
+            const double value {line.section('\t',1,1).toDouble()};
+            dataOrigin.push_back(value);
+        }
+        file.close();
+    }
+    return dataOrigin;
+}
 
 void MainWindow::openSlot()
 {
@@ -61,6 +81,12 @@ MainWindow::MainWindow(QWidget *parent)
     QWidget* centralWidgetPtr {new QWidget};
     centralWidgetPtr->setLayout(mainHBoxLayoutPtr);
     setCentralWidget(centralWidgetPtr);
+
+    QObject::connect(openButtonPtr_,&QPushButton::clicked,
+                     this,&MainWindow::openSlot);
+    QObject::connect(processButtonPtr_,&QPushButton::clicked,
+                     this,&MainWindow::processSlot);
+    algoComboBoxPtr_->addItems({"PHA"});
 
     QVector<double> dataOrigin {};
     const QString algorithmName {};

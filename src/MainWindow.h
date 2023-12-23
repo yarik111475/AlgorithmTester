@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QVector>
+#include <QString>
 #include <memory>
 
 class QwtPlot;
@@ -20,6 +22,7 @@ private:
     QPushButton* openButtonPtr_ {nullptr};
     QPushButton* processButtonPtr_ {nullptr};
     std::shared_ptr<BaseAlgorithm> algorithmPtr_ {nullptr};
+    QVector<double> readOrigin(const QString& path);
 private slots:
     void openSlot();
     void processSlot();
