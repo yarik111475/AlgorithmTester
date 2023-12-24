@@ -1,4 +1,5 @@
 #include "BaseAlgorithm.h"
+#include <QDebug>
 
 void BaseAlgorithm::run()
 {
@@ -6,29 +7,28 @@ void BaseAlgorithm::run()
         if(dataOrigin_.isEmpty()){
             const QString lastError {"Origin data is empty!"};
             emit finishedSignal(lastError);
-            goto cleanup;
-            processSmooth();
-            processRCCR2();
-            processFilter();
+            QThread::quit();
         }
+        processStepOne();
+        processStepTwo();
+        processStepThree();
     }
     catch(const std::exception& ex){
         const QString lastError {ex.what()};
         emit finishedSignal(lastError);
-        goto cleanup;
+        QThread::quit();
     }
     catch(...){
         const QString lastError {"Unknown exception"};
         emit finishedSignal(lastError);
-        goto cleanup;
+        QThread::quit();
     }
     emit finishedSignal(QString::Null());
-cleanup:
-    QThread::quit();
+    QThread::exec();
 }
 
-BaseAlgorithm::BaseAlgorithm(const QVector<double> &dataOrigin, QObject *parent)
-    :QThread{parent},dataOrigin_{dataOrigin}
+BaseAlgorithm::BaseAlgorithm(const QVector<double> &dataOrigin, double triggerThreshold, int span, int tau, QObject *parent)
+    :QThread{parent},dataOrigin_{dataOrigin},triggerThreshold_{triggerThreshold},span_{span},tau_{tau}
 { 
 }
 

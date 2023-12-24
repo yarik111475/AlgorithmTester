@@ -9,19 +9,23 @@ class BaseAlgorithm : public QThread
 {
     Q_OBJECT
 protected:
+    double triggerThreshold_ {};
+    int span_ {};
+    int tau_ {};
+
     QVector<double> dataOrigin_ {};
     virtual void run()override;
-    virtual void processSmooth()=0;
-    virtual void processRCCR2()=0;
-    virtual void processFilter()=0;
+    virtual void processStepOne()=0;
+    virtual void processStepTwo()=0;
+    virtual void processStepThree()=0;
 public:
-    explicit BaseAlgorithm(const QVector<double>& dataOrigin,QObject* parent=nullptr);
+    explicit BaseAlgorithm(const QVector<double>& dataOrigin,double triggerThreshold,int span,int tau,QObject* parent=nullptr);
     virtual ~BaseAlgorithm();
     virtual QString getName()const=0;
 signals:
-    void endSmoothSignal(const QVector<double>& dataSmooth);
-    void endRCCR2Signal(const QVector<double>& dataRCCR2);
-    void endFilterSignal(const QVector<double>& dataFiltered);
+    void endStepOneSignal(const QVector<double>& dataSmooth);
+    void endStepTwoSignal(const QVector<double>& dataRCCR2);
+    void endStepThreeSignal(const QVector<double>& dataFiltered);
     void finishedSignal(const QString& lastError);
 
 };
