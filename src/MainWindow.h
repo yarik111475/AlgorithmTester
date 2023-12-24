@@ -54,6 +54,9 @@ private slots:
 
     void leftRCCR2ChangedSlot(int value);
     void rightRCCR2ChangedSlot(int value);
+
+    void leftFilteredChangedSlot(int value);
+    void rightFilteredChangedSlot(int value);
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 

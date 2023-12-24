@@ -135,6 +135,11 @@ void MainWindow::endStepThreeSlot(const QVector<double> &dataFiltered)
     if(!dataFiltered.empty()){
         dataFiltered_=dataFiltered;
         redrawPlot(qwtPlotFilteredPtr_,dataFiltered_,Qt::green);
+
+        leftFilteredOffsetSliderPtr_->setRange(0,dataFiltered.size());
+        leftFilteredOffsetSliderPtr_->setValue(0);
+        rightFilteredOffsetSliderPtr_->setRange(0,dataFiltered.size());
+        rightFilteredOffsetSliderPtr_->setValue(0);
     }
 }
 
@@ -172,6 +177,22 @@ void MainWindow::rightRCCR2ChangedSlot(int value)
     if(!dataRCCR2_.empty() && value!=0 && value!=dataRCCR2_.size()){
         const QVector<double> data {dataRCCR2_.mid(leftRCCR2OffsetSliderPtr_->value(),dataRCCR2_.size()-value)};
         redrawPlot(qwtPlotRCR2Ptr_,data,Qt::blue);
+    }
+}
+
+void MainWindow::leftFilteredChangedSlot(int value)
+{
+    if(!dataFiltered_.empty() && value!=0 && value!=dataFiltered_.size()){
+        const QVector<double> data {dataFiltered_.mid(value,rightFilteredOffsetSliderPtr_->value()-value)};
+        redrawPlot(qwtPlotFilteredPtr_,data,Qt::green);
+    }
+}
+
+void MainWindow::rightFilteredChangedSlot(int value)
+{
+    if(!dataFiltered_.empty() && value!=0 && value!=dataFiltered_.size()){
+        const QVector<double> data {dataFiltered_.mid(leftFilteredOffsetSliderPtr_->value(),dataFiltered_.size()-value)};
+        redrawPlot(qwtPlotFilteredPtr_,data,Qt::green);
     }
 }
 
@@ -260,8 +281,15 @@ MainWindow::MainWindow(QWidget *parent)
     offsetGridLayoutPtr->addWidget(lineBPtr,6,0,1,2);
     offsetGridLayoutPtr->addWidget(new QLabel(QObject::tr("Left filtered offset:")),7,0);
     offsetGridLayoutPtr->addWidget(leftFilteredOffsetSliderPtr_,7,1);
+    leftFilteredOffsetSliderPtr_->setSingleStep(1000);
+    QObject::connect(leftFilteredOffsetSliderPtr_,&QSlider::valueChanged,
+                     this,&MainWindow::leftFilteredChangedSlot);
+
     offsetGridLayoutPtr->addWidget(new QLabel(QObject::tr("Right filtered offset:")),8,0);
     offsetGridLayoutPtr->addWidget(rightFilteredOffsetSliderPtr_,8,1);
+    rightFilteredOffsetSliderPtr_->setSingleStep(1000);
+    QObject::connect(rightFilteredOffsetSliderPtr_,&QSlider::valueChanged,
+                     this,&MainWindow::rightFilteredChangedSlot);
 
     offsetGroupBoxPtr->setLayout(offsetGridLayoutPtr);
 
