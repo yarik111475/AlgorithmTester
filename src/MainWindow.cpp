@@ -109,6 +109,7 @@ void MainWindow::endStepOneSlot(const QVector<double> &dataSmooth)
     if(!dataSmooth.empty()){
         dataSmooth_=dataSmooth;
         redrawPlot(qwtPlotSmoothPtr_,dataSmooth_,Qt::red);
+
         leftSmoothOffsetSliderPtr_->setRange(0,dataSmooth_.size());
         leftSmoothOffsetSliderPtr_->setValue(0);
         rightSmoothOffsetSliderPtr_->setRange(0,dataSmooth_.size());
@@ -121,6 +122,11 @@ void MainWindow::endStepTwoSlot(const QVector<double> &dataRCCR2)
     if(!dataRCCR2.empty()){
         dataRCCR2_=dataRCCR2;
         redrawPlot(qwtPlotRCR2Ptr_,dataRCCR2_,Qt::blue);
+
+        leftRCCR2OffsetSliderPtr_->setRange(0,dataRCCR2_.size());
+        leftRCCR2OffsetSliderPtr_->setValue(0);
+        rightRCCR2OffsetSliderPtr_->setRange(0,dataRCCR2_.size());
+        rightRCCR2OffsetSliderPtr_->setValue(0);
     }
 }
 
@@ -155,12 +161,18 @@ void MainWindow::rightSmoothChangedSlot(int value)
 
 void MainWindow::leftRCCR2ChangedSlot(int value)
 {
-
+    if(!dataRCCR2_.empty() && value!=0 && value!=dataRCCR2_.size()){
+        const QVector<double> data {dataRCCR2_.mid(value,rightRCCR2OffsetSliderPtr_->value()-value)};
+        redrawPlot(qwtPlotRCR2Ptr_,data,Qt::blue);
+    }
 }
 
 void MainWindow::rightRCCR2ChangedSlot(int value)
 {
-
+    if(!dataRCCR2_.empty() && value!=0 && value!=dataRCCR2_.size()){
+        const QVector<double> data {dataRCCR2_.mid(leftRCCR2OffsetSliderPtr_->value(),dataRCCR2_.size()-value)};
+        redrawPlot(qwtPlotRCR2Ptr_,data,Qt::blue);
+    }
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -235,8 +247,16 @@ MainWindow::MainWindow(QWidget *parent)
     offsetGridLayoutPtr->addWidget(lineAPtr,2,0,1,2);
     offsetGridLayoutPtr->addWidget(new QLabel(QObject::tr("Left RCCR2 offset:")),4,0);
     offsetGridLayoutPtr->addWidget(leftRCCR2OffsetSliderPtr_,4,1);
+    leftRCCR2OffsetSliderPtr_->setSingleStep(1000);
+    QObject::connect(leftRCCR2OffsetSliderPtr_,&QSlider::valueChanged,
+                     this,&MainWindow::leftRCCR2ChangedSlot);
+
     offsetGridLayoutPtr->addWidget(new QLabel(QObject::tr("Right RCCR2 offset:")),5,0);
     offsetGridLayoutPtr->addWidget(rightRCCR2OffsetSliderPtr_,5,1);
+    rightRCCR2OffsetSliderPtr_->setSingleStep(1000);
+    QObject::connect(rightRCCR2OffsetSliderPtr_,&QSlider::valueChanged,
+                     this,&MainWindow::rightRCCR2ChangedSlot);
+
     offsetGridLayoutPtr->addWidget(lineBPtr,6,0,1,2);
     offsetGridLayoutPtr->addWidget(new QLabel(QObject::tr("Left filtered offset:")),7,0);
     offsetGridLayoutPtr->addWidget(leftFilteredOffsetSliderPtr_,7,1);
