@@ -92,11 +92,15 @@ void MainWindow::processSlot()
     const int span {spanLineEditPtr_->text().toInt()};
     int tau {tauLineEditPtr_->text().toInt()};
     const double triggerThreshold {thresholdLineEditPtr_->text().toDouble()};
+    const int start {qAbs(leftOriginOffsetSliderPtr_->value())};
+    const int end {qAbs(rightOriginOffsetSliderPtr_->value())};
 
-    if(!dataOrigin_.isEmpty()){
+    if(!dataOrigin_.isEmpty() && start < end){
+        const auto dataSlice {dataOrigin_.mid(start,dataOrigin_.size()-end)};
+
         const QString algorithmName {algoComboBoxPtr_->currentText()};
         if(!algorithmName.isEmpty() && !dataOrigin_.empty()){
-            algorithmPtr_=AlgorithmFactory::makeAlgorithm(algorithmName,dataOrigin_,triggerThreshold,span,tau);
+            algorithmPtr_=AlgorithmFactory::makeAlgorithm(algorithmName,dataSlice,triggerThreshold,span,tau);
             if(algorithmPtr_){
                 QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepOneSignal,
                                  this,&MainWindow::endStepOneSlot);
