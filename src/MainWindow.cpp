@@ -72,36 +72,46 @@ void MainWindow::loadSlot()
     const QString filter {"Comma-separated files (*.csv)"};
     const QString filename {QFileDialog::getOpenFileName(this,QObject::tr("Open file"),qApp->applicationDirPath(),filter)};
     if(!filename.isEmpty()){
-        const int span {spanLineEditPtr_->text().toInt()};
-        int tau {tauLineEditPtr_->text().toInt()};
-        const double triggerThreshold {thresholdLineEditPtr_->text().toDouble()};
+        dataOrigin_=readOrigin(filename);
+        redrawPlot(qwtPlotOriginPtr_,dataOrigin_,Qt::black);
 
-        const auto dataOrigin {readOrigin(filename)};
-        if(!dataOrigin.isEmpty()){
-            const QString algorithmName {algoComboBoxPtr_->currentText()};
-            if(!algorithmName.isEmpty() && !dataOrigin.empty()){
-                algorithmPtr_=AlgorithmFactory::makeAlgorithm(algorithmName,dataOrigin,triggerThreshold,span,tau);
-                if(algorithmPtr_){
-                    QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepOneSignal,
-                                     this,&MainWindow::endStepOneSlot);
-                    QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepTwoSignal,
-                                     this,&MainWindow::endStepTwoSlot);
-                    QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepThreeSignal,
-                                     this,&MainWindow::endStepThreeSlot);
-                    QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::finishedSignal,
-                                     this,&MainWindow::finishedSlot);
-                    QObject::connect(algorithmPtr_.get(),&QThread::finished,
-                                     algorithmPtr_.get(),&QThread::deleteLater);
-                    algorithmPtr_->start();
-                }
-            }
-        }
+        leftOriginOffsetSliderPtr_->setRange(0,dataOrigin_.size());
+        leftOriginOffsetSliderPtr_->setValue(0);
+        rightOriginOffsetSliderPtr_->setRange(0,dataOrigin_.size());
+        rightOriginOffsetSliderPtr_->setValue(0);
     }
 }
 
 void MainWindow::saveSlot()
 {
 
+}
+
+void MainWindow::processSlot()
+{
+    const int span {spanLineEditPtr_->text().toInt()};
+    int tau {tauLineEditPtr_->text().toInt()};
+    const double triggerThreshold {thresholdLineEditPtr_->text().toDouble()};
+
+    if(!dataOrigin_.isEmpty()){
+        const QString algorithmName {algoComboBoxPtr_->currentText()};
+        if(!algorithmName.isEmpty() && !dataOrigin_.empty()){
+            algorithmPtr_=AlgorithmFactory::makeAlgorithm(algorithmName,dataOrigin_,triggerThreshold,span,tau);
+            if(algorithmPtr_){
+                QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepOneSignal,
+                                 this,&MainWindow::endStepOneSlot);
+                QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepTwoSignal,
+                                 this,&MainWindow::endStepTwoSlot);
+                QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::endStepThreeSignal,
+                                 this,&MainWindow::endStepThreeSlot);
+                QObject::connect(algorithmPtr_.get(),&BaseAlgorithm::finishedSignal,
+                                 this,&MainWindow::finishedSlot);
+                QObject::connect(algorithmPtr_.get(),&QThread::finished,
+                                 algorithmPtr_.get(),&QThread::deleteLater);
+                algorithmPtr_->start();
+            }
+        }
+    }
 }
 
 void MainWindow::endStepOneSlot(const QVector<double> &dataSmooth)
@@ -146,6 +156,22 @@ void MainWindow::endStepThreeSlot(const QVector<double> &dataFiltered)
 void MainWindow::finishedSlot(const QString &lastError)
 {
     qDebug()<<lastError;
+}
+
+void MainWindow::leftOriginChangedSlot(int value)
+{
+    if(!dataOrigin_.empty() && value!=0 && value!=dataOrigin_.size()){
+        const QVector<double> data {dataOrigin_.mid(value,rightOriginOffsetSliderPtr_->value()-value)};
+        redrawPlot(qwtPlotOriginPtr_,data,Qt::black);
+    }
+}
+
+void MainWindow::rightOriginChangedSlot(int value)
+{
+    if(!dataOrigin_.empty() && value!=0 && value!=dataOrigin_.size()){
+        const QVector<double> data {dataOrigin_.mid(leftOriginOffsetSliderPtr_->value(),dataOrigin_.size()-value)};
+        redrawPlot(qwtPlotOriginPtr_,data,Qt::black);
+    }
 }
 
 void MainWindow::leftSmoothChangedSlot(int value)
@@ -198,12 +224,15 @@ void MainWindow::rightFilteredChangedSlot(int value)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
+      qwtPlotOriginPtr_{new QwtPlot{this}},
       qwtPlotSmoothPtr_{new QwtPlot(this)},
       qwtPlotRCR2Ptr_{new QwtPlot(this)},
       qwtPlotFilteredPtr_{new QwtPlot(this)},
       tauLineEditPtr_{new QLineEdit("500")},
       spanLineEditPtr_{new QLineEdit("5")},
       thresholdLineEditPtr_{new QLineEdit("3450")},
+      leftOriginOffsetSliderPtr_{new QSlider(Qt::Horizontal)},
+      rightOriginOffsetSliderPtr_{new QSlider(Qt::Horizontal)},
       leftSmoothOffsetSliderPtr_{new QSlider(Qt::Horizontal)},
       rightSmoothOffsetSliderPtr_{new QSlider(Qt::Horizontal)},
       leftRCCR2OffsetSliderPtr_{new QSlider(Qt::Horizontal)},
@@ -212,6 +241,7 @@ MainWindow::MainWindow(QWidget *parent)
       rightFilteredOffsetSliderPtr_{new QSlider(Qt::Horizontal)},
       algoComboBoxPtr_{new QComboBox},
       loadButtonPtr_{new QPushButton(QObject::tr("Load"))},
+      processButtonPtr_{new QPushButton(QObject::tr("Process"))},
       saveButtonPtr_{new QPushButton(QObject::tr("Save"))}
 {
 
@@ -234,8 +264,20 @@ MainWindow::MainWindow(QWidget *parent)
     thresholdLineEditPtr_->setValidator(new QIntValidator(thresholdLineEditPtr_));
 
     algoGridLayoutPtr->addWidget(loadButtonPtr_,4,1);
-    algoGridLayoutPtr->addWidget(saveButtonPtr_,5,1);
+    algoGridLayoutPtr->addWidget(processButtonPtr_,5,1);
+    algoGridLayoutPtr->addWidget(saveButtonPtr_,6,1);
 
+    algoGridLayoutPtr->addWidget(new QLabel(QObject::tr("Left origin offset:")),7,0);
+    algoGridLayoutPtr->addWidget(leftOriginOffsetSliderPtr_,7,1);
+    leftOriginOffsetSliderPtr_->setSingleStep(1000);
+    QObject::connect(leftOriginOffsetSliderPtr_,&QSlider::valueChanged,
+                     this,&MainWindow::leftOriginChangedSlot);
+
+    algoGridLayoutPtr->addWidget(new QLabel(QObject::tr("Right origin offset:")),8,0);
+    algoGridLayoutPtr->addWidget(rightOriginOffsetSliderPtr_,8,1);
+    rightOriginOffsetSliderPtr_->setSingleStep(1000);
+    QObject::connect(rightOriginOffsetSliderPtr_,&QSlider::valueChanged,
+                     this,&MainWindow::rightOriginChangedSlot);
     algoGroupBoxPtr->setLayout(algoGridLayoutPtr);
 
     QGroupBox* offsetGroupBoxPtr {new QGroupBox(QObject::tr("Offset params"))};
@@ -299,6 +341,7 @@ MainWindow::MainWindow(QWidget *parent)
     rightVBoxLayoutPtr->addStretch(5);
 
     QVBoxLayout* leftVBoxLayoutPtr {new QVBoxLayout};
+    leftVBoxLayoutPtr->addWidget(qwtPlotOriginPtr_);
     leftVBoxLayoutPtr->addWidget(qwtPlotSmoothPtr_);
     leftVBoxLayoutPtr->addWidget(qwtPlotRCR2Ptr_);
     leftVBoxLayoutPtr->addWidget(qwtPlotFilteredPtr_);
@@ -313,10 +356,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     QObject::connect(loadButtonPtr_,&QPushButton::clicked,
                      this,&MainWindow::loadSlot);
+    QObject::connect(processButtonPtr_,&QPushButton::clicked,
+                     this,&MainWindow::processSlot);
     QObject::connect(saveButtonPtr_,&QPushButton::clicked,
                      this,&MainWindow::saveSlot);
 
     algoComboBoxPtr_->addItems({"PHA"});
+
+    qwtPlotOriginPtr_->setTitle(QObject::tr("Origin data"));
+    qwtPlotOriginPtr_->setCanvasBackground(Qt::white);
 
     qwtPlotSmoothPtr_->setTitle(QObject::tr("Smoothed data"));
     qwtPlotSmoothPtr_->setCanvasBackground(Qt::white);

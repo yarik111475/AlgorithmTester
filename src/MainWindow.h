@@ -17,12 +17,15 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 private:
+    QwtPlot* qwtPlotOriginPtr_ {nullptr};
     QwtPlot* qwtPlotSmoothPtr_ {nullptr};
     QwtPlot* qwtPlotRCR2Ptr_ {nullptr};
     QwtPlot* qwtPlotFilteredPtr_ {nullptr};
     QLineEdit* tauLineEditPtr_ {nullptr};
     QLineEdit* spanLineEditPtr_ {nullptr};
     QLineEdit* thresholdLineEditPtr_ {nullptr};
+    QSlider* leftOriginOffsetSliderPtr_ {nullptr};
+    QSlider* rightOriginOffsetSliderPtr_ {nullptr};
     QSlider* leftSmoothOffsetSliderPtr_ {nullptr};
     QSlider* rightSmoothOffsetSliderPtr_ {nullptr};
     QSlider* leftRCCR2OffsetSliderPtr_ {nullptr};
@@ -31,9 +34,11 @@ private:
     QSlider* rightFilteredOffsetSliderPtr_ {nullptr};
     QComboBox* algoComboBoxPtr_ {nullptr};
     QPushButton* loadButtonPtr_ {nullptr};
+    QPushButton* processButtonPtr_ {nullptr};
     QPushButton* saveButtonPtr_ {nullptr};
 
     std::shared_ptr<BaseAlgorithm> algorithmPtr_ {nullptr};
+    QVector<double> dataOrigin_ {};
     QVector<double> dataSmooth_ {};
     QVector<double> dataRCCR2_ {};
     QVector<double> dataFiltered_ {};
@@ -43,11 +48,15 @@ private:
 private slots:
     void loadSlot();
     void saveSlot();
+    void processSlot();
 
     void endStepOneSlot(const QVector<double>& dataSmooth);
     void endStepTwoSlot(const QVector<double>& dataRCCR2);
     void endStepThreeSlot(const QVector<double>& dataFiltered);
     void finishedSlot(const QString& lastError);
+
+    void leftOriginChangedSlot(int value);
+    void rightOriginChangedSlot(int value);
 
     void leftSmoothChangedSlot(int value);
     void rightSmoothChangedSlot(int value);
